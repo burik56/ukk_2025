@@ -9,6 +9,7 @@ class UsersPage extends StatefulWidget {
 class _UsersPageState extends State<UsersPage> {
   final SupabaseClient _supabase = Supabase.instance.client;
   List<Map<String, dynamic>> _users = [];
+  List<Map<String, dynamic>> _allUsers = [];
   TextEditingController _searchController = TextEditingController();
 
   @override
@@ -26,18 +27,18 @@ class _UsersPageState extends State<UsersPage> {
 
   Future<void> _fetchUsers() async {
     try {
-      final response = await _supabase
-          .from('user')
-          .select('username, role')
-          .maybeSingle();
+      final List<dynamic> response =
+          await _supabase.from('user').select('username, role');
 
-      if (response != null) {
+      if (response.isNotEmpty) {
         setState(() {
-          _users = [Map<String, dynamic>.from(response)];
+          _allUsers =
+              response.map((e) => Map<String, dynamic>.from(e)).toList();
+          _users = List.from(_allUsers);
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memuat data pengguna')),
+          SnackBar(content: Text('Tidak ada data pengguna')),
         );
       }
     } catch (error) {
@@ -92,9 +93,9 @@ class _UsersPageState extends State<UsersPage> {
                 onPressed: () => Navigator.pop(context, true),
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
-                      Colors.red, // Ubah warna background menjadi merah
+                      Colors.red, 
                   foregroundColor:
-                      Colors.white, // Ubah warna teks menjadi putih
+                      Colors.white,
                 ),
                 child: Text('Hapus'),
               ),
@@ -130,7 +131,7 @@ class _UsersPageState extends State<UsersPage> {
                       selectedRole = newValue!;
                     });
                   },
-                  items: ['user', 'petugas', 'administrator']
+                  items: ['petugas', 'administrator']
                       .map<DropdownMenuItem<String>>((String value) {
                     return DropdownMenuItem<String>(
                       value: value,
@@ -261,53 +262,63 @@ class _UsersPageState extends State<UsersPage> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                labelText: 'Cari Pengguna',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    body: Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              labelText: 'Cari Pengguna',
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
           ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: _users.length,
-              itemBuilder: (context, index) {
-                final user = _users[index];
-                return ListTile(
-                  leading: CircleAvatar(child: Text(user['username'][0])),
-                  title: Text(user['username']),
-                  subtitle: Text('Role: ${user['role']}'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () =>
-                            _editUserDialog(user['username'], user['role']),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _deleteUser(user['username']),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            _addUserDialog();
+          },
+          child: Text('Tambah Pengguna'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
           ),
-        ],
-      ),
-    );
-  }
+        ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: _users.length,
+            itemBuilder: (context, index) {
+              final user = _users[index];
+              return ListTile(
+                leading: CircleAvatar(child: Text(user['username'][0])),
+                title: Text(user['username']),
+                subtitle: Text('Role: ${user['role']}'),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.edit, color: Colors.blue),
+                      onPressed: () => _editUserDialog(user['username'], user['role']),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => _deleteUser(user['username']),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 }
