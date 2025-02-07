@@ -1,0 +1,24 @@
+      backgroundColor: Color(0xfff2f3f4),
+      appBar: AppBar(
+        elevation: 2,
+        centerTitle: true,
+        automaticallyImplyLeading: false,
+        backgroundColor: Color(0xff3a57e8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero,
+        ),
+        title: Text(
+          "Toko Jul",
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontStyle: FontStyle.normal,
+            fontSize: 14,
+            color: Color(0xffffffff),
+          ),
+        ),
+        leading: Icon(
+          Icons.menu,
+          color: Color(0xffffffff),
+          size: 24,
+        ),
+      ),
