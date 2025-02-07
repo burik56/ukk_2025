@@ -68,7 +68,7 @@ class _HomepageState extends State<Homepage> {
             label: "Beranda",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.search),
+            icon: Icon(Icons.fastfood),
             label: "Produk",
           ),
           BottomNavigationBarItem(
@@ -216,4 +216,5 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+
 }
