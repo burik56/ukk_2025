@@ -62,17 +62,45 @@ class _UsersPageState extends State<UsersPage> {
   Future<void> _deleteUser(String username) async {
     bool confirmDelete = await _showDeleteConfirmationDialog();
     if (confirmDelete) {
-      final response = await _supabase
-          .from('user')
-          .delete()
-          .eq('username', username)
-          .maybeSingle();
+      try {
+        // Cek apakah user ada sebelum dihapus
+        final existingUser = await _supabase
+            .from('user')
+            .select()
+            .eq('username', username)
+            .maybeSingle();
 
-      if (response != null) {
-        _fetchUsers();
-      } else {
+        if (existingUser == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Pengguna tidak ditemukan')),
+          );
+          return; // Hentikan eksekusi jika user tidak ada
+        }
+
+        print("Menghapus user: $existingUser");
+
+        // Hapus user
+        final response = await _supabase
+            .from('user')
+            .delete()
+            .eq('username', username)
+            .select('*'); // Menggunakan select agar mendapat respons
+
+        print("Respon dari Supabase setelah delete: $response");
+
+        if (response.isNotEmpty) {
+          _fetchUsers(); // Refresh daftar pengguna setelah menghapus
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Pengguna berhasil dihapus')),
+          );
+        } else {
+          throw Exception(
+              'Gagal menghapus pengguna. Tidak ada data yang dihapus.');
+        }
+      } catch (error) {
+        print("Error saat menghapus pengguna: $error");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menghapus pengguna')),
+          SnackBar(content: Text('Gagal menghapus pengguna: $error')),
         );
       }
     }
@@ -92,10 +120,8 @@ class _UsersPageState extends State<UsersPage> {
               ElevatedButton(
                 onPressed: () => Navigator.pop(context, true),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      Colors.red, 
-                  foregroundColor:
-                      Colors.white,
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
                 ),
                 child: Text('Hapus'),
               ),
@@ -105,10 +131,14 @@ class _UsersPageState extends State<UsersPage> {
         false;
   }
 
-  Future<void> _editUserDialog(String oldUsername, String oldRole) async {
+  Future<void> _editUserDialog(
+      String oldUsername, String oldRole, String oldPassword) async {
     TextEditingController usernameController =
         TextEditingController(text: oldUsername);
+    TextEditingController passwordController =
+        TextEditingController(text: '******'); // Tampilkan placeholder password
     String selectedRole = oldRole;
+    bool isPasswordChanged = false; // Menandai apakah password diubah
 
     showDialog(
       context: context,
@@ -122,6 +152,22 @@ class _UsersPageState extends State<UsersPage> {
                 TextField(
                   controller: usernameController,
                   decoration: InputDecoration(labelText: 'Username'),
+                ),
+                SizedBox(height: 10),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: InputDecoration(labelText: 'Password'),
+                  onChanged: (value) {
+                    setState(() {
+                      isPasswordChanged = true; // Password baru dimasukkan
+                    });
+                  },
+                  onTap: () {
+                    if (!isPasswordChanged) {
+                      passwordController.clear(); // Kosongkan jika disentuh
+                    }
+                  },
                 ),
                 SizedBox(height: 10),
                 DropdownButton<String>(
@@ -152,7 +198,13 @@ class _UsersPageState extends State<UsersPage> {
                 onPressed: () {
                   if (usernameController.text.isNotEmpty) {
                     _updateUser(
-                        oldUsername, usernameController.text, selectedRole);
+                      oldUsername,
+                      usernameController.text,
+                      isPasswordChanged
+                          ? passwordController.text
+                          : null, // Update hanya jika diubah
+                      selectedRole,
+                    );
                   }
                 },
                 style: ElevatedButton.styleFrom(
@@ -168,29 +220,48 @@ class _UsersPageState extends State<UsersPage> {
     );
   }
 
-  Future<void> _updateUser(
-      String oldUsername, String newUsername, String newRole) async {
-    final response = await _supabase
-        .from('user')
-        .update({'username': newUsername, 'role': newRole})
-        .eq('username', oldUsername)
-        .maybeSingle();
+  Future<void> _updateUser(String oldUsername, String newUsername,
+      String? newPassword, String newRole) async {
+    try {
+      Map<String, dynamic> updateData = {
+        'username': newUsername,
+        'role': newRole,
+      };
 
-    if (response == null) {
-      _fetchUsers();
-      Navigator.pop(context);
-    } else {
+      // Update password hanya jika pengguna mengubahnya
+      if (newPassword != null && newPassword.isNotEmpty) {
+        updateData['password'] = newPassword; // HARUS di-hash sebelum disimpan
+      }
+
+      final response = await _supabase
+          .from('user')
+          .update(updateData)
+          .eq('username', oldUsername)
+          .select();
+
+      if (response.isNotEmpty) {
+        _fetchUsers();
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Pengguna berhasil diperbarui')),
+        );
+      } else {
+        throw Exception('Gagal memperbarui pengguna');
+      }
+    } catch (error) {
+      print("Error saat memperbarui pengguna: $error");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memperbarui pengguna')),
+        SnackBar(content: Text('Terjadi kesalahan: $error')),
       );
     }
   }
 
   Future<void> _addUserDialog() async {
     TextEditingController usernameController = TextEditingController();
-    String selectedRole = 'user';
+    TextEditingController passwordController = TextEditingController();
+    String selectedRole = 'petugas';
 
-    showDialog(
+    return showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
@@ -204,6 +275,12 @@ class _UsersPageState extends State<UsersPage> {
                   decoration: InputDecoration(labelText: 'Username'),
                 ),
                 SizedBox(height: 10),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: InputDecoration(labelText: 'Password'),
+                ),
+                SizedBox(height: 10),
                 DropdownButton<String>(
                   value: selectedRole,
                   onChanged: (newValue) {
@@ -211,7 +288,7 @@ class _UsersPageState extends State<UsersPage> {
                       selectedRole = newValue!;
                     });
                   },
-                  items: ['user', 'petugas', 'administrator']
+                  items: ['petugas', 'administrator']
                       .map<DropdownMenuItem<String>>((String value) {
                     return DropdownMenuItem<String>(
                       value: value,
@@ -229,9 +306,17 @@ class _UsersPageState extends State<UsersPage> {
                 child: Text('Batal'),
               ),
               ElevatedButton(
-                onPressed: () {
-                  if (usernameController.text.isNotEmpty) {
-                    _addUser(usernameController.text, selectedRole);
+                onPressed: () async {
+                  if (usernameController.text.isNotEmpty &&
+                      passwordController.text.isNotEmpty) {
+                    await _addUser(usernameController.text,
+                        passwordController.text, selectedRole);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content:
+                              Text('Username dan Password tidak boleh kosong')),
+                    );
                   }
                 },
                 style: ElevatedButton.styleFrom(
@@ -247,78 +332,109 @@ class _UsersPageState extends State<UsersPage> {
     );
   }
 
-  Future<void> _addUser(String username, String role) async {
-    final response = await _supabase
-        .from('user')
-        .insert({'username': username, 'role': role}).maybeSingle();
+  Future<void> _addUser(String username, String password, String role) async {
+    try {
+      print("Menambahkan pengguna: $username, Role: $role");
 
-    if (response == null) {
-      _fetchUsers();
-      Navigator.pop(context);
-    } else {
+      final response = await _supabase.from('user').insert({
+        'username': username,
+        'password': password, // Pastikan password di-hash sebelum disimpan
+        'role': role,
+      }).select();
+
+      print("Respon dari Supabase: $response");
+
+      if (response != null && response.isNotEmpty) {
+        _fetchUsers(); // Refresh daftar user
+        Navigator.pop(context); // Tutup dialog setelah sukses
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Pengguna berhasil ditambahkan')),
+        );
+      } else {
+        throw Exception('Gagal menambah pengguna');
+      }
+    } catch (error) {
+      print("Error: $error"); // Debugging
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal menambah pengguna')),
+        SnackBar(content: Text('Terjadi kesalahan: $error')),
       );
     }
   }
 
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    body: Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              labelText: 'Cari Pengguna',
-              prefixIcon: Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                labelText: 'Cari Pengguna',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            _addUserDialog();
-          },
-          child: Text('Tambah Pengguna'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
-          ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: _users.length,
-            itemBuilder: (context, index) {
-              final user = _users[index];
-              return ListTile(
-                leading: CircleAvatar(child: Text(user['username'][0])),
-                title: Text(user['username']),
-                subtitle: Text('Role: ${user['role']}'),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.edit, color: Colors.blue),
-                      onPressed: () => _editUserDialog(user['username'], user['role']),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _deleteUser(user['username']),
-                    ),
-                  ],
-                ),
-              );
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await _addUserDialog(); // Pastikan ini benar-benar dideklarasikan
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Terjadi kesalahan: $e')),
+                );
+              }
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('Tambah Pengguna'),
           ),
-        ),
-      ],
-    ),
-  );
-}
+          Expanded(
+            child: ListView.builder(
+              itemCount: _users.length,
+              itemBuilder: (context, index) {
+                final user = _users[index];
+                return ListTile(
+                  leading: CircleAvatar(child: Text(user['username'][0])),
+                  title: Text(user['username']),
+                  subtitle: Text('Role: ${user['role']}'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.edit, color: Colors.blue),
+                        onPressed: () async {
+                          // Ambil data lengkap user termasuk password
+                          final userDetails = await _supabase
+                              .from('user')
+                              .select('password')
+                              .eq('username', user['username'])
+                              .maybeSingle();
 
+                          String oldPassword = userDetails?['password'] ?? '';
+
+                          _editUserDialog(
+                              user['username'], user['role'], oldPassword);
+                        },
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _deleteUser(user['username']),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

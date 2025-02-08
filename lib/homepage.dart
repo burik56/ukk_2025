@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:ukk_ujian/Loginpage.dart';
 import 'user_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'produk.dart';
+import 'pelanggan_page.dart';
 
 void main() => runApp(MyApp());
 
@@ -20,6 +23,7 @@ class Homepage extends StatefulWidget {
 
 class _HomepageState extends State<Homepage> {
   int _selectedIndex = 0;
+  String _username = "Pengguna"; // Default sebelum mengambil dari sesi
 
   void _onItemTapped(int index) {
     setState(() {
@@ -27,10 +31,28 @@ class _HomepageState extends State<Homepage> {
     });
   }
 
+  /// Mengambil username yang tersimpan di sesi
+  Future<void> _loadUserData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _username = prefs.getString('username') ?? "Pengguna";
+    });
+  }
+
+  Future<void> _logout() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear(); // Hapus data sesi
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginPage()),
+    );
+  }
+
   static List<Widget> _widgetOptions = <Widget>[
     HomeScreen(),
     ProdukPage(),
     UsersPage(),
+    PelangganPage(),
   ];
 
   @override
@@ -38,28 +60,58 @@ class _HomepageState extends State<Homepage> {
     return Scaffold(
       drawer: Drawer(
         child: ListView(
-          // Important: Remove any padding from the ListView.
           padding: EdgeInsets.zero,
           children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
+            UserAccountsDrawerHeader(
+              decoration: BoxDecoration(color: Color(0xff3a57e8)),
+              accountName: Text(
+                _username, // Nama user dari sesi
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              child: Text('Drawer Header'),
+              accountEmail: Text(
+                  "example@gmail.com"), // Bisa diubah ke email dari database
+              currentAccountPicture: CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(Icons.person, size: 40, color: Colors.blue),
+              ),
             ),
             ListTile(
-              title: const Text('Item 1'),
+              leading: Icon(Icons.home),
+              title: Text("Beranda"),
               onTap: () {
-                // Update the state of the app.
-                // ...
+                _onItemTapped(0);
+                Navigator.pop(context);
               },
             ),
             ListTile(
-              title: const Text('Item 2'),
+              leading: Icon(Icons.fastfood),
+              title: Text("Produk"),
               onTap: () {
-                // Update the state of the app.
-                // ...
+                _onItemTapped(1);
+                Navigator.pop(context);
               },
+            ),
+            ListTile(
+              leading: Icon(Icons.person),
+              title: Text("User"),
+              onTap: () {
+                _onItemTapped(2);
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.people),
+              title: Text("Pelanggan"),
+              onTap: () {
+                _onItemTapped(3);
+                Navigator.pop(context);
+              },
+            ),
+            Divider(),
+            ListTile(
+              leading: Icon(Icons.logout, color: Colors.red),
+              title: Text("Logout", style: TextStyle(color: Colors.red)),
+              onTap: _logout,
             ),
           ],
         ),
@@ -67,24 +119,22 @@ class _HomepageState extends State<Homepage> {
       appBar: AppBar(
         elevation: 2,
         centerTitle: true,
-        automaticallyImplyLeading: false,
         backgroundColor: Color(0xff3a57e8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
-        ),
         title: Text(
           "Toko Jul",
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            fontStyle: FontStyle.normal,
-            fontSize: 14,
-            color: Color(0xffffffff),
+            fontSize: 16,
+            color: Colors.white,
           ),
         ),
-        leading: Icon(
-          Icons.menu,
-          color: Color(0xffffffff),
-          size: 24,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: Icon(Icons.menu, color: Colors.white),
+            onPressed: () {
+              Scaffold.of(context).openDrawer(); // Membuka Drawer saat ditekan
+            },
+          ),
         ),
       ),
       backgroundColor: Color.fromARGB(255, 255, 255, 255),
@@ -103,9 +153,14 @@ class _HomepageState extends State<Homepage> {
             icon: Icon(Icons.person),
             label: "User",
           ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people),
+            label: "Pelanggan",
+          ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blue,
+        selectedItemColor: Colors.blue, // Warna ketika dipilih
+        unselectedItemColor: Color(0xFFB771E5), // Warna ikon saat tidak dipilih
         onTap: _onItemTapped,
       ),
     );
@@ -244,5 +299,4 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
-
 }

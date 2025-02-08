@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ukk_ujian/homepage.dart';
 
 class LoginPage extends StatefulWidget {
@@ -15,6 +16,34 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginStatus();
+  }
+
+  /// Mengecek apakah pengguna sudah login
+  Future<void> _checkLoginStatus() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? username = prefs.getString('username');
+    int? expiryTime = prefs.getInt('expiry_time');
+
+    if (username != null && expiryTime != null) {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (now < expiryTime) {
+        // Jika sesi masih berlaku, langsung ke Homepage
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => Homepage()),
+        );
+      } else {
+        // Jika sesi sudah habis, hapus data
+        await prefs.clear();
+      }
+    }
+  }
+
+  /// Fungsi Login
   Future<void> _login() async {
     setState(() {
       _isLoading = true;
@@ -32,6 +61,7 @@ class _LoginPageState extends State<LoginPage> {
         String storedPassword = response['password'];
 
         if (_passwordController.text.trim() == storedPassword) {
+          await _saveSession(_usernameController.text.trim());
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => Homepage()),
@@ -55,6 +85,17 @@ class _LoginPageState extends State<LoginPage> {
         _isLoading = false;
       });
     }
+  }
+
+  /// Simpan sesi login ke SharedPreferences selama 24 jam
+  Future<void> _saveSession(String username) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final expiryTime = DateTime.now()
+        .add(Duration(hours: 24))
+        .millisecondsSinceEpoch; // Set 24 jam
+
+    await prefs.setString('username', username);
+    await prefs.setInt('expiry_time', expiryTime);
   }
 
   @override
