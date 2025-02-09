@@ -29,18 +29,11 @@ class _PelangganPageState extends State<PelangganPage> {
     try {
       final List<dynamic> response =
           await _supabase.from('pelanggan').select('*');
-
-      if (response.isNotEmpty) {
-        setState(() {
-          _allPelanggan =
-              response.map((e) => Map<String, dynamic>.from(e)).toList();
-          _pelanggan = List.from(_allPelanggan);
-        });
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Tidak ada data pelanggan')),
-        );
-      }
+      
+      setState(() {
+        _allPelanggan = response.map((e) => Map<String, dynamic>.from(e)).toList();
+        _pelanggan = List.from(_allPelanggan);
+      });
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Terjadi kesalahan: ${error.toString()}')),
@@ -60,18 +53,15 @@ class _PelangganPageState extends State<PelangganPage> {
     });
   }
 
-  Future<void> _editPelangganDialog(Map<String, dynamic> pelanggan) async {
-    TextEditingController namaController =
-        TextEditingController(text: pelanggan['namapelanggan']);
-    TextEditingController alamatController =
-        TextEditingController(text: pelanggan['alamat'] ?? '');
-    TextEditingController teleponController =
-        TextEditingController(text: pelanggan['nomertelepon'] ?? '');
+  Future<void> _tambahPelangganDialog() async {
+    TextEditingController namaController = TextEditingController();
+    TextEditingController alamatController = TextEditingController();
+    TextEditingController teleponController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Edit Pelanggan'),
+        title: Text('Tambah Pelanggan'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -98,8 +88,7 @@ class _PelangganPageState extends State<PelangganPage> {
           ),
           ElevatedButton(
             onPressed: () async {
-              await _updatePelanggan(
-                pelanggan['pelangganid'],
+              await _tambahPelanggan(
                 namaController.text,
                 alamatController.text,
                 teleponController.text,
@@ -112,63 +101,20 @@ class _PelangganPageState extends State<PelangganPage> {
     );
   }
 
-  Future<void> _updatePelanggan(
-      int id, String nama, String alamat, String telepon) async {
+  Future<void> _tambahPelanggan(String nama, String alamat, String telepon) async {
     try {
-      await _supabase.from('pelanggan').update({
+      await _supabase.from('pelanggan').insert({
         'namapelanggan': nama,
         'alamat': alamat,
         'nomertelepon': telepon,
-      }).eq('pelangganid', id);
+      });
       _fetchPelanggan();
       Navigator.pop(context);
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memperbarui pelanggan: $error')),
+        SnackBar(content: Text('Gagal menambahkan pelanggan: $error')),
       );
     }
-  }
-
-  Future<void> _deletePelanggan(int id) async {
-    bool confirmDelete = await _showDeleteConfirmationDialog();
-    if (confirmDelete) {
-      try {
-        await _supabase.from('pelanggan').delete().eq('pelangganid', id);
-        _fetchPelanggan();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Pelanggan berhasil dihapus')),
-        );
-      } catch (error) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menghapus pelanggan: $error')),
-        );
-      }
-    }
-  }
-
-  Future<bool> _showDeleteConfirmationDialog() async {
-    return await showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text('Konfirmasi'),
-            content: Text('Apakah Anda yakin ingin menghapus pelanggan ini?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text('Batal'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                ),
-                child: Text('Hapus'),
-              ),
-            ],
-          ),
-        ) ??
-        false;
   }
 
   @override
@@ -179,15 +125,24 @@ class _PelangganPageState extends State<PelangganPage> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                labelText: 'Cari Pelanggan',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+            child: Column(
+              children: [
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    labelText: 'Cari Pelanggan',
+                    prefixIcon: Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
-              ),
+                SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: _tambahPelangganDialog,
+                  child: Text('Tambah Pelanggan'),
+                ),
+              ],
             ),
           ),
           Expanded(
@@ -203,11 +158,11 @@ class _PelangganPageState extends State<PelangganPage> {
                     children: [
                       IconButton(
                         icon: Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () => _editPelangganDialog(pelanggan),
+                        onPressed: () {},
                       ),
                       IconButton(
                         icon: Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _deletePelanggan(pelanggan['pelangganid']),
+                        onPressed: () {},
                       ),
                     ],
                   ),

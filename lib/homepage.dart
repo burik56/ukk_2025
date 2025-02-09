@@ -4,6 +4,7 @@ import 'user_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'produk.dart';
 import 'pelanggan_page.dart';
+import 'transaksi_page.dart';
 
 void main() => runApp(MyApp());
 
@@ -50,6 +51,7 @@ class _HomepageState extends State<Homepage> {
 
   static List<Widget> _widgetOptions = <Widget>[
     HomeScreen(),
+    TransaksiPage(),
     ProdukPage(),
     UsersPage(),
     PelangganPage(),
@@ -84,10 +86,18 @@ class _HomepageState extends State<Homepage> {
               },
             ),
             ListTile(
+              leading: Icon(Icons.payment),
+              title: Text("Transaksi"),
+              onTap: () {
+                _onItemTapped(1);
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
               leading: Icon(Icons.fastfood),
               title: Text("Produk"),
               onTap: () {
-                _onItemTapped(1);
+                _onItemTapped(2);
                 Navigator.pop(context);
               },
             ),
@@ -95,7 +105,7 @@ class _HomepageState extends State<Homepage> {
               leading: Icon(Icons.person),
               title: Text("User"),
               onTap: () {
-                _onItemTapped(2);
+                _onItemTapped(3);
                 Navigator.pop(context);
               },
             ),
@@ -103,7 +113,7 @@ class _HomepageState extends State<Homepage> {
               leading: Icon(Icons.people),
               title: Text("Pelanggan"),
               onTap: () {
-                _onItemTapped(3);
+                _onItemTapped(4);
                 Navigator.pop(context);
               },
             ),
@@ -144,6 +154,10 @@ class _HomepageState extends State<Homepage> {
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: "Beranda",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.payment),
+            label: "Transaksi",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.fastfood),
