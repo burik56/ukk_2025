@@ -15,6 +15,7 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _isLoading = false;
   String? _errorMessage;
+  bool _obscurePassword = true;  // Menyembunyikan password secara default
 
   @override
   void initState() {
@@ -53,15 +54,18 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final response = await supabase
           .from('user')
-          .select()
+          .select('username, password, role') // Pastikan mengambil role
           .eq('username', _usernameController.text.trim())
           .maybeSingle();
 
       if (response != null) {
         String storedPassword = response['password'];
+        String role = response['role']; // Ambil role dari database
 
         if (_passwordController.text.trim() == storedPassword) {
-          await _saveSession(_usernameController.text.trim());
+          // Simpan username dan role ke sesi
+          await _saveSession(_usernameController.text.trim(), role);
+
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => Homepage()),
@@ -88,13 +92,13 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   /// Simpan sesi login ke SharedPreferences selama 24 jam
-  Future<void> _saveSession(String username) async {
+  Future<void> _saveSession(String username, String role) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    final expiryTime = DateTime.now()
-        .add(Duration(hours: 24))
-        .millisecondsSinceEpoch; // Set 24 jam
+    final expiryTime =
+        DateTime.now().add(Duration(hours: 24)).millisecondsSinceEpoch;
 
     await prefs.setString('username', username);
+    await prefs.setString('role', role); // Simpan role dengan benar
     await prefs.setInt('expiry_time', expiryTime);
   }
 
@@ -157,10 +161,22 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 TextField(
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: _obscurePassword,  // Menggunakan variabel _obscurePassword
                   decoration: InputDecoration(
                     labelText: "Password",
                     border: OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,  // Menentukan ikon mata
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;  // Toggle visibilitas password
+                        });
+                      },
+                    ),
                   ),
                 ),
                 Padding(

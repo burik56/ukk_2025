@@ -1,0 +1,200 @@
+import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart';
+
+class PembayaranPage extends StatefulWidget {
+  @override
+  _PembayaranPageState createState() => _PembayaranPageState();
+}
+
+class _PembayaranPageState extends State<PembayaranPage> {
+  final SupabaseClient supabase = Supabase.instance.client;
+  List<Map<String, dynamic>> produkList = [];
+  List<Map<String, dynamic>> filteredProdukList = [];
+  List<Map<String, dynamic>> pelangganList = [];
+  Map<int, int> jumlahBeli = {};
+  String? selectedPelanggan;
+  TextEditingController searchController = TextEditingController();
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchProduk();
+    fetchPelanggan();
+  }
+
+  Future<void> fetchProduk() async {
+    final response = await supabase.from('produk').select();
+    setState(() {
+      produkList = response
+          .map((item) => {
+                'produkid': item['produkid'],
+                'namaproduk': item['namaproduk'],
+                'harga': item['harga'],
+                'stok': item['stok'],
+              })
+          .toList();
+      filteredProdukList = List.from(produkList);
+      isLoading = false;
+    });
+  }
+
+  Future<void> fetchPelanggan() async {
+    final response = await supabase.from('pelanggan').select();
+    setState(() {
+      pelangganList = response
+          .map((item) => {
+                'pelangganid': item['pelangganid'],
+                'namapelanggan': item['namapelanggan'],
+              })
+          .toList();
+    });
+  }
+
+  void filterProduk(String query) {
+    setState(() {
+      filteredProdukList = produkList
+          .where((item) =>
+              item['namaproduk'].toLowerCase().contains(query.toLowerCase()))
+          .toList();
+    });
+  }
+
+  int hitungTotal() {
+    int total = 0;
+    jumlahBeli.forEach((id, jumlah) {
+      var produk = produkList.firstWhere((item) => item['produkid'] == id);
+      total += (produk['harga'] as num).toInt() * jumlah;
+    });
+    return total;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Color(0xff3a57e8),
+        title: Text(
+          'Pembayaran',
+          style: TextStyle(color: Colors.white),
+        ),
+        iconTheme: IconThemeData(color: Colors.white),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: TextField(
+              controller: searchController,
+              onChanged: filterProduk,
+              decoration: InputDecoration(
+                hintText: 'Cari produk...',
+                prefixIcon: Icon(Icons.search, color: Color(0xff3a57e8)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ),
+          DropdownButtonFormField(
+            value: selectedPelanggan,
+            items: pelangganList.map((pelanggan) {
+              return DropdownMenuItem(
+                value: pelanggan['pelangganid'].toString(),
+                child: Text(pelanggan['namapelanggan']),
+              );
+            }).toList(),
+            onChanged: (value) =>
+                setState(() => selectedPelanggan = value as String?),
+            decoration: InputDecoration(
+              labelText: 'Pilih Pelanggan',
+              contentPadding: EdgeInsets.symmetric(horizontal: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+          Expanded(
+            child: isLoading
+                ? Center(child: CircularProgressIndicator())
+                : ListView.builder(
+                    itemCount: filteredProdukList.length,
+                    itemBuilder: (context, index) {
+                      final produk = filteredProdukList[index];
+                      int jumlah = jumlahBeli[produk['produkid']] ?? 0;
+
+                      return Card(
+                        margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: ListTile(
+                          title: Text(produk['namaproduk']),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Harga: Rp ${produk['harga']}'),
+                              Text('Stok: ${produk['stok']}'),
+                            ],
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.remove_circle, color: Colors.red),
+                                onPressed: () {
+                                  setState(() {
+                                    if (jumlahBeli.containsKey(produk['produkid']) && jumlahBeli[produk['produkid']]! > 0) {
+                                      jumlahBeli[produk['produkid']] = jumlahBeli[produk['produkid']]! - 1;
+                                      if (jumlahBeli[produk['produkid']] == 0) jumlahBeli.remove(produk['produkid']);
+                                    }
+                                  });
+                                },
+                              ),
+                              Text('$jumlah', style: TextStyle(fontSize: 18)),
+                              IconButton(
+                                icon: Icon(Icons.add_circle, color: Color(0xff3a57e8)),
+                                onPressed: () {
+                                  setState(() {
+                                    jumlahBeli[produk['produkid']] = (jumlahBeli[produk['produkid']] ?? 0) + 1;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: Column(
+              children: [
+                Text(
+                  'Total Belanja: Rp ${hitungTotal()}',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: () {
+                    // Proses pembayaran
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xff3a57e8),
+                    padding: EdgeInsets.symmetric(vertical: 15, horizontal: 50),
+                  ),
+                  child: Text(
+                    'Proses Pembayaran',
+                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_icon_snackbar/flutter_icon_snackbar.dart';
 
 class ProdukPage extends StatefulWidget {
   @override
@@ -52,11 +53,11 @@ class _ProdukPageState extends State<ProdukPage> {
   Future<void> deleteProduk(int id) async {
     await supabase.from('produk').delete().eq('produkid', id);
     fetchProduk();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Produk berhasil dihapus!"),
-        backgroundColor: Colors.red,
-      ),
+    IconSnackBar.show(
+      context,
+      snackBarType: SnackBarType.fail,
+      maxLines: 1,
+      label: 'Produk berhasil dihapus!',
     );
   }
 
@@ -107,11 +108,11 @@ class _ProdukPageState extends State<ProdukPage> {
                     'harga': double.tryParse(hargaController.text) ?? 0,
                     'stok': int.tryParse(stokController.text) ?? 0,
                   });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("Produk berhasil ditambahkan!"),
-                      backgroundColor: Colors.green,
-                    ),
+                  IconSnackBar.show(
+                    context,
+                    snackBarType: SnackBarType.success,
+                    maxLines: 1,
+                    label: 'Produk berhasil ditambahkan!',
                   );
                 } else {
                   await supabase.from('produk').update({
@@ -119,11 +120,11 @@ class _ProdukPageState extends State<ProdukPage> {
                     'harga': double.tryParse(hargaController.text) ?? 0,
                     'stok': int.tryParse(stokController.text) ?? 0,
                   }).eq('produkid', produk['produkid']);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("Produk berhasil diperbarui!"),
-                      backgroundColor: Colors.blue,
-                    ),
+                  IconSnackBar.show(
+                    context,
+                    snackBarType: SnackBarType.success,
+                    maxLines: 1,
+                    label: 'Produk berhasil diperbarui!',
                   );
                 }
                 fetchProduk();
@@ -136,7 +137,6 @@ class _ProdukPageState extends State<ProdukPage> {
       },
     );
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'produk.dart';
 import 'pelanggan_page.dart';
 import 'transaksi_page.dart';
+import 'pembayaran_page.dart';
+import 'akun_page.dart';
 
 void main() => runApp(MyApp());
 
@@ -25,6 +27,7 @@ class Homepage extends StatefulWidget {
 class _HomepageState extends State<Homepage> {
   int _selectedIndex = 0;
   String _username = "Pengguna"; // Default sebelum mengambil dari sesi
+  String _role = "Pengguna"; // Default sebelum mengambil dari sesi
 
   void _onItemTapped(int index) {
     setState(() {
@@ -37,7 +40,13 @@ class _HomepageState extends State<Homepage> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       _username = prefs.getString('username') ?? "Pengguna";
+      _role = prefs.getString('role') ??
+          "Pengguna"; // Ambil role dari SharedPreferences
     });
+
+    // DEBUGGING: Cetak hasil di terminal
+    print("DEBUG: Username -> $_username");
+    print("DEBUG: Role -> $_role");
   }
 
   Future<void> _logout() async {
@@ -56,6 +65,12 @@ class _HomepageState extends State<Homepage> {
     UsersPage(),
     PelangganPage(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData(); // Tambahkan ini agar username langsung dimuat saat aplikasi dijalankan
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,11 +93,14 @@ class _HomepageState extends State<Homepage> {
               ),
             ),
             ListTile(
-              leading: Icon(Icons.home),
-              title: Text("Beranda"),
+              leading: Icon(Icons.account_circle), // Ganti Beranda menjadi Akun
+              title: Text("Akun"),
               onTap: () {
-                _onItemTapped(0);
-                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => AkunPage()), // Pindah ke AkunPage
+                );
               },
             ),
             ListTile(
@@ -130,17 +148,30 @@ class _HomepageState extends State<Homepage> {
         elevation: 2,
         centerTitle: true,
         backgroundColor: Color(0xff3a57e8),
-        title: Text(
-          "Toko Jul",
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-            color: Colors.white,
-          ),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              "Toko Jul",
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                color: Colors.white,
+              ),
+            ),
+            Text(
+              _role, // Menampilkan Role di kanan AppBar
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: Colors.white,
+              ),
+            ),
+          ],
         ),
         leading: Builder(
           builder: (context) => IconButton(
-            icon: Icon(Icons.menu, color: Colors.white),
+            icon: Icon(Icons.menu, color: Colors.white), // Ubah warna ke putih
             onPressed: () {
               Scaffold.of(context).openDrawer(); // Membuka Drawer saat ditekan
             },
@@ -283,6 +314,44 @@ class HomeScreen extends StatelessWidget {
                 prefixIcon:
                     Icon(Icons.search, color: Color(0xffa4a2a2), size: 20),
               ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => PembayaranPage()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4.0),
+                    ),
+                  ),
+                  icon: Icon(Icons.shopping_cart),
+                  label: Text("Pembayaran"),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => PelangganPage()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4.0),
+                    ),
+                  ),
+                  icon: Icon(Icons.people),
+                  label: Text("Pelanggan"),
+                ),
+              ],
             ),
           ),
           Padding(

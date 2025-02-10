@@ -37,7 +37,9 @@ dependencies:
   cupertino_icons: ^1.0.6
   supabase_flutter: ^2.8.3
   google_sign_in: ^6.2.2
+  intl: ^0.18.1
   persistent_bottom_nav_bar: any
+  flutter_icon_snackbar: ^1.2.1
 
 dev_dependencies:
   flutter_test:
@@ -61,6 +63,7 @@ flutter:
     - assets/background.png
     - assets/makanan.png
     - assets/logo.jpg
+    - assets/avatar.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
