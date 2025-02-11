@@ -288,7 +288,7 @@ class _UsersPageState extends State<UsersPage> {
                       selectedRole = newValue!;
                     });
                   },
-                  items: ['petugas', 'administrator']
+                  items: ['petugas', 'administrator', 'pelanggan']
                       .map<DropdownMenuItem<String>>((String value) {
                     return DropdownMenuItem<String>(
                       value: value,

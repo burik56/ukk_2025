@@ -35,7 +35,7 @@ class _TransaksiPageState extends State<TransaksiPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text("Transaksi berhasil dihapus"),
+            content: Text("Riwayat Transaksi berhasil dihapus"),
             backgroundColor: Colors.green),
       );
 
@@ -43,7 +43,7 @@ class _TransaksiPageState extends State<TransaksiPage> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text("Gagal menghapus transaksi: $e"),
+            content: Text("Gagal menghapus Riwayat transaksi: $e"),
             backgroundColor: Colors.red),
       );
     }
@@ -54,7 +54,7 @@ class _TransaksiPageState extends State<TransaksiPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "Transaksi",
+          "Riwayat Transaksi",
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: Color(0xff3a57e8),

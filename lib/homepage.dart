@@ -7,6 +7,7 @@ import 'pelanggan_page.dart';
 import 'transaksi_page.dart';
 import 'pembayaran_page.dart';
 import 'akun_page.dart';
+import 'package:flutter_icon_snackbar/flutter_icon_snackbar.dart';
 
 void main() => runApp(MyApp());
 
@@ -26,10 +27,26 @@ class Homepage extends StatefulWidget {
 
 class _HomepageState extends State<Homepage> {
   int _selectedIndex = 0;
+  List<dynamic> produkList = [];
   String _username = "Pengguna"; // Default sebelum mengambil dari sesi
   String _role = "Pengguna"; // Default sebelum mengambil dari sesi
 
   void _onItemTapped(int index) {
+    if (_role == "petugas" || _role == "pelanggan") {
+      // Jika role adalah Petugas atau Pelanggan, blokir akses ke halaman tertentu (misalnya index 3 dan 2)
+      if (index == 2 || index == 3 || index == 4) {
+        // Gunakan IconSnackBar untuk pesan error
+        IconSnackBar.show(
+          context,
+          snackBarType: SnackBarType.alert, // SnackBar dengan ikon error
+          maxLines: 1,
+          label: "Anda tidak memiliki akses!",
+        );
+        return; // Batalkan perpindahan halaman
+      }
+    }
+
+    // Jika pengecekan tidak menghalangi, lanjutkan untuk mengganti halaman
     setState(() {
       _selectedIndex = index;
     });
@@ -70,6 +87,14 @@ class _HomepageState extends State<Homepage> {
   void initState() {
     super.initState();
     _loadUserData(); // Tambahkan ini agar username langsung dimuat saat aplikasi dijalankan
+    fetchProduk();
+  }
+
+  Future<void> fetchProduk() async {
+    final response = await supabase.from('produk').select();
+    setState(() {
+      produkList = response;
+    });
   }
 
   @override
@@ -85,27 +110,59 @@ class _HomepageState extends State<Homepage> {
                 _username, // Nama user dari sesi
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              accountEmail: Text(
-                  "example@gmail.com"), // Bisa diubah ke email dari database
+              accountEmail: Text("example@gmail.com"),
               currentAccountPicture: CircleAvatar(
                 backgroundColor: Colors.white,
                 child: Icon(Icons.person, size: 40, color: Colors.blue),
               ),
             ),
+            // Menu "Akun" sekarang di posisi pertama
             ListTile(
-              leading: Icon(Icons.account_circle), // Ganti Beranda menjadi Akun
+              leading: Icon(Icons.account_circle),
               title: Text("Akun"),
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                      builder: (context) => AkunPage()), // Pindah ke AkunPage
+                  MaterialPageRoute(builder: (context) => AkunPage()),
+                );
+              },
+            ),
+            // Menu "User" sekarang di posisi kedua
+            ListTile(
+              leading: Icon(Icons.person),
+              title: Text("User"),
+              onTap: () {
+                // Cek jika role bukan "Admin" (baik Petugas atau Pelanggan)
+                if (_role == "Petugas" || _role == "Pelanggan") {
+                  // Jika role adalah Petugas atau Pelanggan, tampilkan peringatan
+                  IconSnackBar.show(
+                    context,
+                    snackBarType: SnackBarType.alert,
+                    maxLines: 1,
+                    label: "Anda tidak memiliki Hak akses",
+                  );
+                } else {
+                  // Jika role adalah Admin, lanjutkan navigasi
+                  _onItemTapped(3);
+                  Navigator.pop(context);
+                }
+              },
+            ),
+
+            // Menu "Pembayaran"
+            ListTile(
+              leading: Icon(Icons.shopping_cart),
+              title: Text("Pembayaran"),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => PembayaranPage()),
                 );
               },
             ),
             ListTile(
               leading: Icon(Icons.payment),
-              title: Text("Transaksi"),
+              title: Text("Riwayat Transaksi"),
               onTap: () {
                 _onItemTapped(1);
                 Navigator.pop(context);
@@ -115,26 +172,44 @@ class _HomepageState extends State<Homepage> {
               leading: Icon(Icons.fastfood),
               title: Text("Produk"),
               onTap: () {
-                _onItemTapped(2);
-                Navigator.pop(context);
+                if (_role == "petugas" || _role == "pelanggan") {
+                  // Jika role adalah Petugas atau Pelanggan, blokir akses
+                  IconSnackBar.show(
+                    context,
+                    snackBarType:
+                        SnackBarType.alert, // SnackBar dengan ikon error
+                    maxLines: 1,
+                    label: "Anda tidak memiliki akses!",
+                  );
+                } else {
+                  // Jika role bukan Petugas atau Pelanggan, izinkan akses ke menu Produk
+                  _onItemTapped(2);
+                  Navigator.pop(context);
+                }
               },
             ),
-            ListTile(
-              leading: Icon(Icons.person),
-              title: Text("User"),
-              onTap: () {
-                _onItemTapped(3);
-                Navigator.pop(context);
-              },
-            ),
+
             ListTile(
               leading: Icon(Icons.people),
               title: Text("Pelanggan"),
               onTap: () {
+                // Pengecekan untuk role Petugas dan Pelanggan agar tidak bisa akses halaman index 4
+                if (_role == "petugas" || _role == "pelanggan") {
+                  // Gunakan IconSnackBar untuk pesan error
+                  IconSnackBar.show(
+                    context,
+                    snackBarType:
+                        SnackBarType.alert, // SnackBar dengan ikon error
+                    maxLines: 1,
+                    label: "Anda tidak memiliki akses!",
+                  );
+                  return; // Batalkan perpindahan halaman
+                }
                 _onItemTapped(4);
                 Navigator.pop(context);
               },
             ),
+
             Divider(),
             ListTile(
               leading: Icon(Icons.logout, color: Colors.red),
@@ -188,7 +263,7 @@ class _HomepageState extends State<Homepage> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.payment),
-            label: "Transaksi",
+            label: "Riwayat Transaksi",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.fastfood),
@@ -247,7 +322,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        "Aden",
+                        "DI KASIR JUL",
                         textAlign: TextAlign.start,
                         overflow: TextOverflow.clip,
                         style: TextStyle(

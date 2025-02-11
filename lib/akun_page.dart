@@ -163,7 +163,7 @@ class _GantiPasswordPageState extends State<GantiPasswordPage> {
 
       final String storedPassword = response['password'];
       if (oldPassword != storedPassword) {
-        IconSnackBar.show(context, snackBarType: SnackBarType.alert, label: "Password lama salah");
+        IconSnackBar.show(context, snackBarType: SnackBarType.fail, label: "Password lama salah");
         return;
       }
 
