@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_icon_snackbar/flutter_icon_snackbar.dart';
 
 class ProdukPage extends StatefulWidget {
-  
   @override
   _ProdukPageState createState() => _ProdukPageState();
 }
@@ -12,52 +11,19 @@ class ProdukPage extends StatefulWidget {
 class _ProdukPageState extends State<ProdukPage> {
   final SupabaseClient supabase = Supabase.instance.client;
   List<dynamic> produkList = [];
-  List<dynamic> filteredProdukList = [];
-  TextEditingController searchController = TextEditingController();
-  String userRole = ''; // Default kosong, nanti diisi berdasarkan user login
 
-
-@override
-void initState() {
-  super.initState();
-  fetchUserRole();
-  fetchProduk();
-}
-
+  @override
+  void initState() {
+    super.initState();
+    fetchProduk();
+  }
 
   Future<void> fetchProduk() async {
     final response = await supabase.from('produk').select();
     setState(() {
       produkList = response;
-      filteredProdukList = response; // Awalnya sama dengan produkList
     });
   }
-
-  void filterProduk(String query) {
-    setState(() {
-      filteredProdukList = produkList
-          .where((produk) => produk['namaproduk']
-              .toString()
-              .toLowerCase()
-              .contains(query.toLowerCase()))
-          .toList();
-    });
-  }
-Future<void> fetchUserRole() async {
-  final user = supabase.auth.currentUser;
-  if (user != null) {
-    final response = await supabase
-        .from('user')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-    setState(() {
-      userRole = response['role']; // Bisa 'admin', 'petugas', atau 'pelanggan'
-    });
-  }
-}
-
 
   Future<void> confirmDeleteProduk(int id) async {
     showDialog(
@@ -96,12 +62,9 @@ Future<void> fetchUserRole() async {
   }
 
   Future<void> showTambahProdukDialog({Map<String, dynamic>? produk}) async {
-    TextEditingController namaController =
-        TextEditingController(text: produk?['namaproduk'] ?? "");
-    TextEditingController hargaController =
-        TextEditingController(text: produk?['harga']?.toString() ?? "");
-    TextEditingController stokController =
-        TextEditingController(text: produk?['stok']?.toString() ?? "");
+    TextEditingController namaController = TextEditingController(text: produk?['namaproduk'] ?? "");
+    TextEditingController hargaController = TextEditingController(text: produk?['harga']?.toString() ?? "");
+    TextEditingController stokController = TextEditingController(text: produk?['stok']?.toString() ?? "");
 
     return showDialog(
       context: context,
@@ -174,7 +137,6 @@ Future<void> fetchUserRole() async {
       },
     );
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -183,12 +145,9 @@ Future<void> fetchUserRole() async {
         padding: EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           children: [
-            // Input Pencarian Produk
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: TextField(
-                controller: searchController,
-                onChanged: filterProduk,
                 decoration: InputDecoration(
                   labelText: 'Cari Produk',
                   prefixIcon: Icon(Icons.search),
@@ -198,13 +157,11 @@ Future<void> fetchUserRole() async {
                 ),
               ),
             ),
-
-            // Daftar Produk
             Expanded(
               child: ListView.builder(
-                itemCount: filteredProdukList.length,
+                itemCount: produkList.length,
                 itemBuilder: (context, index) {
-                  final produk = filteredProdukList[index];
+                  final produk = produkList[index];
                   return Container(
                     margin: EdgeInsets.only(bottom: 16),
                     padding: EdgeInsets.all(12),
@@ -215,7 +172,6 @@ Future<void> fetchUserRole() async {
                     ),
                     child: Row(
                       children: [
-                        // Gambar Produk
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child: Image.asset(
@@ -226,8 +182,6 @@ Future<void> fetchUserRole() async {
                           ),
                         ),
                         SizedBox(width: 16),
-
-                        // Informasi Produk
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,10 +195,8 @@ Future<void> fetchUserRole() async {
                               ),
                               SizedBox(height: 4),
                               Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  // Stok Produk
                                   Text(
                                     'Stok: ${produk['stok'] ?? 0}',
                                     style: TextStyle(
@@ -252,26 +204,18 @@ Future<void> fetchUserRole() async {
                                       color: Colors.grey.shade700,
                                     ),
                                   ),
-
-                                  // Tombol Edit & Hapus di Tengah
                                   Row(
                                     children: [
                                       IconButton(
-                                        icon: Icon(Icons.edit,
-                                            color: Colors.blue),
-                                        onPressed: () => showTambahProdukDialog(
-                                            produk: produk),
+                                        icon: Icon(Icons.edit, color: Colors.blue),
+                                        onPressed: () => showTambahProdukDialog(produk: produk),
                                       ),
                                       IconButton(
-                                        icon: Icon(Icons.delete,
-                                            color: Colors.red),
-                                        onPressed: () => confirmDeleteProduk(
-                                            produk['produkid']),
+                                        icon: Icon(Icons.delete, color: Colors.red),
+                                        onPressed: () => confirmDeleteProduk(produk['produkid']),
                                       ),
                                     ],
                                   ),
-
-                                  // Harga Produk
                                   Text(
                                     'Rp ${produk['harga'] ?? 0}',
                                     style: TextStyle(
@@ -293,14 +237,11 @@ Future<void> fetchUserRole() async {
           ],
         ),
       ),
-floatingActionButton: (userRole == 'admin' || userRole == 'petugas')
-    ? FloatingActionButton(
+      floatingActionButton: FloatingActionButton(
         onPressed: () => showTambahProdukDialog(),
         child: Icon(Icons.add),
         backgroundColor: Colors.blue,
-      )
-    : null,
-
+      ),
     );
   }
 }
